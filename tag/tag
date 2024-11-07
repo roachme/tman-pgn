@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PGNAME="repo"
+PGNAME="tag"
 CONF=
 ENV=
 ID=
