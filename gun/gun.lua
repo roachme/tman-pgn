@@ -198,6 +198,11 @@ local function branch(basic, sysunits, pgnunits)
     return save(basic.pgnfile, pgnunits)
 end
 
+local function branch_delete(basic, repos, pgnunits)
+    for _, repo in pairs(repos) do
+    end
+end
+
 local function switch(basic, repos, repodir)
     local pgnunits = load(basic.pgnfile)
     local branchname = pgnunits.branch
