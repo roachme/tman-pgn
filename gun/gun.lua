@@ -2,6 +2,9 @@
 
 package.path = package.path .. ";" .. os.getenv("HOME") .. "/.config/tman/pgns/?.lua"
 
+-- TODO: Fill out default values for config file.
+-- This way plugin will not break.
+
 local config = require("repoconf")
 local utils  = require("utils")
 local gitlib = require("gitlib")
@@ -280,6 +283,31 @@ function gun.rsync(basic)
     return 0
 end
 
+function gun.del(basic)
+    local envconf = config[basic.env] or {}
+    local repos = config.repos or {}
+    local sysunits = load(basic.sysfile);
+    local pgnunits = load(basic.pgnfile)
+    local sysbranch = branch_generate(envconf.branchpatt, sysunits)
+    local branchname = pgnunits.branch or sysbranch
+
+    for _, repo in pairs(repos) do
+        if not gitlib.branch_switch(repo.name, repo.branch, basic.repodir) then
+            elog("could not switch to default branch", repo.name)
+        elseif branchname then
+            if gitlib.branch_exist(repo.name, branchname, basic.repodir) then
+                if not gitlib.branch_delete(repo.name, branchname, basic.repodir) then
+                    elog("could not delete branch", repo.name)
+                end
+            end
+        end
+    end
+    return 0
+end
+
+function gun.commit(basic)
+end
+
 function gun.cat(basic)
     local pgnunits = load(basic.pgnfile)
     for key, val in pairs(pgnunits) do
@@ -302,10 +330,12 @@ local function main()
     local lastidx = 1
     local bincmds = {
         { name = "cat",   func = gun.cat   },
+        { name = "del",   func = gun.del   },
         { name = "ver",   func = gun.ver   },
         { name = "help",  func = gun.help  },
         { name = "sync",  func = gun.sync  },
         { name = "rsync", func = gun.rsync },
+        { name = "commit", func = gun.commit },
     }
 
     for optopt, optarg, optind in getopt(arg, "b:e:i:") do
