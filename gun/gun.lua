@@ -292,7 +292,9 @@ function gun.del(basic)
     local branchname = pgnunits.branch or sysbranch
 
     for _, repo in pairs(repos) do
-        if not gitlib.branch_switch(repo.name, repo.branch, basic.repodir) then
+        if gitlib.repo_isuncommited(repo.name, basic.repodir) then
+            elog(string.format("Cannot delete branch in '%s': has uncommited changes", repo.name));
+        elseif not gitlib.branch_switch(repo.name, repo.branch, basic.repodir) then
             elog("could not switch to default branch", repo.name)
         elseif branchname then
             if gitlib.branch_exist(repo.name, branchname, basic.repodir) then
