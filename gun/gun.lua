@@ -71,14 +71,14 @@ end
 local function optgen(basic)
     local envconf = config[basic.env] or {}
 
-    basic.taskdir = basic.base .. '/' .. 'tasks' .. '/' .. basic.env .. '/' .. basic.id
+    basic.taskdir = basic.base .. '/' .. basic.env .. '/' .. basic.id
     basic.unitdir = basic.taskdir .. '/' .. '.tman'
     basic.sysfile = basic.unitdir .. '/' .. 'unit'
 
     -- dirs gotta be created
-    basic.repodir = basic.base .. '/' .. 'pgns/gun'
+    basic.repodir = basic.base .. '/' .. '.pgn/gun'
     basic.farmdir = basic.taskdir .. '/' .. (envconf.dirbase or "")
-    basic.upgndir = basic.unitdir .. '/' .. 'pgns'
+    basic.upgndir = basic.unitdir .. '/' .. '.pgn'
     -- files gotta be created
     basic.pgnfile = basic.upgndir .. '/' .. 'gun'
     return basic
