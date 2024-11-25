@@ -40,10 +40,10 @@ function _find_config()
 function struct_create()
 {
     for dir in "${STRUCT_DIRS[@]}"; do
-        mkdir -p "$BASE/tasks/$ENV/$ID/$dir"
+        mkdir -p "$BASE/$ENV/$ID/$dir"
     done
     for file in "${STRUCT_FILES[@]}"; do
-        touch "$BASE/tasks/$ENV/$ID/$file"
+        touch "$BASE/$ENV/$ID/$file"
     done
     return 0;
 }
@@ -51,10 +51,10 @@ function struct_create()
 function struct_delete()
 {
     for dir in "${STRUCT_DIRS[@]}"; do
-        rm -rf "$BASE/tasks/$ENV/$ID/$dir"
+        rm -rf "$BASE/$ENV/$ID/$dir"
     done
     for file in "${STRUCT_FILES[@]}"; do
-        rm -rf "$BASE/tasks/$ENV/$ID/$file"
+        rm -rf "$BASE/$ENV/$ID/$file"
     done
     return 0;
 }
