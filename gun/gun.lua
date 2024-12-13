@@ -192,6 +192,7 @@ local function branch(basic, sysunits, pgnunits)
             return false
         end
     else
+        -- TODO: optimize code. Do nothing if branch created and ok.
         dlog("[*] create a branch if needed")
         if not _branch_create(basic.repodir, repos, newbranch) then
             return false
