@@ -157,12 +157,12 @@ end
 
 local function _branch_create(repodir, repos, branchname)
     for _, repo in pairs(repos) do
-        if gitlib.repo_isuncommited(repo.name, repodir) then
+        if gitlib.branch_exist(repo.name, branchname, repodir) then
+            -- needed branch exists, do nothing
+        elseif gitlib.repo_isuncommited(repo.name, repodir) then
             return elog(string.format("%s: has uncommited changes", repo.name))
         elseif not gitlib.branch_switch(repo.name, repo.branch, repodir) then
             return elog(string.format("%s: could not switch to deafult branch", repo.name))
-        elseif gitlib.branch_exist(repo.name, branchname, repodir) then
-            -- needed branch exists, do nothing
         elseif not gitlib.branch_create(repo.name, branchname, repodir) then
             return elog(string.format("%s: could not create a branch in repo", repo.name))
         end
@@ -186,14 +186,14 @@ local function branch(basic, sysunits, pgnunits)
     local repos = config.repos
     local newbranch = branch_generate(envconf.branchpatt, sysunits)
 
-    if not pgnunits.branch then
-        dlog("[*] create a branch")
-        if not _branch_create(basic.repodir, repos, newbranch) then
-            return false
-        end
-    elseif pgnunits.branch and pgnunits.branch ~= newbranch then
+    if pgnunits.branch ~= nil and pgnunits.branch ~= newbranch then
         dlog("[*] rename a branch")
         if not _branch_rename(basic.repodir, repos, pgnunits.branch, newbranch) then
+            return false
+        end
+    else
+        dlog("[*] create a branch if needed")
+        if not _branch_create(basic.repodir, repos, newbranch) then
             return false
         end
     end
