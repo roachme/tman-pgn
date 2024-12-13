@@ -161,6 +161,8 @@ local function _branch_create(repodir, repos, branchname)
             return elog(string.format("%s: has uncommited changes", repo.name))
         elseif not gitlib.branch_switch(repo.name, repo.branch, repodir) then
             return elog(string.format("%s: could not switch to deafult branch", repo.name))
+        elseif gitlib.branch_exist(repo.name, branchname, repodir) then
+            -- needed branch exists, do nothing
         elseif not gitlib.branch_create(repo.name, branchname, repodir) then
             return elog(string.format("%s: could not create a branch in repo", repo.name))
         end
