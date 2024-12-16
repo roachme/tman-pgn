@@ -78,7 +78,7 @@ local function optgen(basic)
     -- dirs gotta be created
     basic.repodir = basic.base .. '/' .. '.pgn/gun'
     basic.farmdir = basic.taskdir .. '/' .. (envconf.dirbase or "")
-    basic.upgndir = basic.unitdir .. '/' .. '.pgn'
+    basic.upgndir = basic.unitdir .. '/' .. 'pgn'
     -- files gotta be created
     basic.pgnfile = basic.upgndir .. '/' .. 'gun'
     return basic
