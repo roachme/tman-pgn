@@ -181,7 +181,7 @@ local function _branch_rename(repodir, repos, oldbranch, newbranch)
 end
 
 -- FIXME: creates branches in all repos, even if they're not defined for an env
-local function branch(basic, sysunits, pgnunits)
+local function mkbranch(basic, sysunits, pgnunits)
     local envconf = config[basic.env] or {}
     local repos = config.repos
     local newbranch = branch_generate(envconf.branchpatt, sysunits)
@@ -263,7 +263,7 @@ function gun.sync(basic)
         return 1
     elseif not symlink(config.repos, basic.repodir, basic.farmdir) then
         return 1
-    elseif not branch(basic, sysunits, pgnunits) then
+    elseif not mkbranch(basic, sysunits, pgnunits) then
         return 1
     elseif not switch(basic, config.repos, basic.repodir) then
         return 1
