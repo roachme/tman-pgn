@@ -259,6 +259,9 @@ function gun.sync(basic)
     local sysunits = load(basic.sysfile);
     local pgnunits = load(basic.pgnfile);
 
+    -- hotfix: add task ID to not break branch generation function
+    sysunits.id = basic.id
+
     if not clone(config.repos, basic.repodir) then
         return 1
     elseif not symlink(config.repos, basic.repodir, basic.farmdir) then
@@ -273,8 +276,13 @@ end
 
 function gun.rsync(basic)
     local sysunits = load(basic.sysfile);
+
+    -- hotfix: add task ID to not break branch generation function
+    sysunits.id = basic.id
+
     local envconf = config[basic.env] or {}
     local branchname = branch_generate(envconf.branchpatt, sysunits)
+
 
     if not gun.sync(basic) then
         return 1
@@ -291,8 +299,13 @@ function gun.del(basic)
     local repos = config.repos or {}
     local sysunits = load(basic.sysfile);
     local pgnunits = load(basic.pgnfile)
+
+    -- hotfix: add task ID to not break branch generation function
+    sysunits.id = basic.id
+
     local sysbranch = branch_generate(envconf.branchpatt, sysunits)
     local branchname = pgnunits.branch or sysbranch
+
 
     for _, repo in pairs(repos) do
         if gitlib.repo_isuncommited(repo.name, basic.repodir) then
