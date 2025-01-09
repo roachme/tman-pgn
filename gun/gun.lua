@@ -262,6 +262,9 @@ function gun.sync(basic)
     -- hotfix: add task ID to not break branch generation function
     sysunits.id = basic.id
 
+    -- hotfix: add a tag for my team
+    sysunits.prefix = "DE"
+
     if not clone(config.repos, basic.repodir) then
         return 1
     elseif not symlink(config.repos, basic.repodir, basic.farmdir) then
@@ -302,6 +305,9 @@ function gun.del(basic)
 
     -- hotfix: add task ID to not break branch generation function
     sysunits.id = basic.id
+
+    -- hotfix: add a tag for my team
+    sysunits.prefix = "DE"
 
     local sysbranch = branch_generate(envconf.branchpatt, sysunits)
     local branchname = pgnunits.branch or sysbranch
