@@ -16,6 +16,30 @@ local pgnver = "v0.0.1"
 
 local isdegub = false
 
+local function showtable(tab)
+    for k, v in pairs(tab) do
+        print(k, "-", v)
+        if type(v) == 'table' then
+            for kk, vv in pairs(v) do
+                print("  ", kk, "-", vv)
+            end
+        end
+    end
+end
+
+function table.join(tab1, tab2)
+    local tab = {}
+
+    for k, v in pairs(tab1) do
+        tab[k] = v
+    end
+    for k, v in pairs(tab2) do
+        tab[k] = v
+    end
+    return tab
+end
+
+
 local function elog(...)
     io.stderr:write(string.format("%s: ", pgname))
     for _, val in pairs({...}) do
@@ -52,13 +76,14 @@ local function load(fname)
 end
 
 local function save(fname, units)
+    local pgnkeys = { "branch" }
     local f = io.open(fname, "w")
     if not f then
         return elog("save: could not open unit file")
     end
-    for k, v in pairs(units) do
-        f:write(k, " : ", v, '\n')
-        dlog("save: ", k, " : ", v, '\n')
+    for _, v in pairs(pgnkeys) do
+        f:write(v, " : ", units[v], '\n')
+        dlog("save: ", v, " : ", units[v], '\n')
     end
     -- FIXME: maybe will cause problems on other Lua versions.
     return f:close() == true
@@ -181,14 +206,13 @@ local function _branch_rename(repodir, repos, oldbranch, newbranch)
 end
 
 -- FIXME: creates branches in all repos, even if they're not defined for an env
-local function mkbranch(basic, sysunits, pgnunits)
-    local envconf = config[basic.env] or {}
-    local repos = config.repos
-    local newbranch = branch_generate(envconf.branchpatt, sysunits)
+local function mkbranch(basic, units)
+    local repos = units.repos
+    local newbranch = branch_generate(units.branchpatt, units)
 
-    if pgnunits.branch ~= nil and pgnunits.branch ~= newbranch then
+    if units.branch ~= nil and units.branch ~= newbranch then
         dlog("[*] rename a branch")
-        if not _branch_rename(basic.repodir, repos, pgnunits.branch, newbranch) then
+        if not _branch_rename(basic.repodir, repos, units.branch, newbranch) then
             return false
         end
     else
@@ -200,8 +224,8 @@ local function mkbranch(basic, sysunits, pgnunits)
     end
 
     -- FIXME: rewrites file even if branch name hasn't changed
-    pgnunits.branch = newbranch
-    return save(basic.pgnfile, pgnunits)
+    units.branch = newbranch
+    return save(basic.pgnfile, units)
 end
 
 local function branch_delete(basic, repos, pgnunits)
@@ -255,65 +279,66 @@ local function setup(basic)
     return true
 end
 
-function gun.sync(basic)
+local function getunits(basic)
     local sysunits = load(basic.sysfile);
     local pgnunits = load(basic.pgnfile);
+    local units = table.join(sysunits, pgnunits)
 
-    -- hotfix: add task ID to not break branch generation function
-    sysunits.id = basic.id
+    units.id = basic.id
 
-    -- hotfix: add a tag for my team
-    sysunits.prefix = "DE"
+    -- Set values that all environments share (if set any)
+    units.prefix = config[basic.env].prefix or config._common.prefix
+    units.commitpatt = config[basic.env].commitpatt or config._common.commitpatt
+    units.branchpatt = config[basic.env].branchpatt or config._common.branchpatt
 
-    if not clone(config.repos, basic.repodir) then
+    -- Add repos that all environments share (if set any)
+    if next(config[basic.env].repos) == nil then
+        if next(config._common.repos) == nil then
+            config[basic.env].repos = config._common.repos
+        else
+            config[basic.env].repos = {}
+        end
+    else
+        units.repos = config[basic.env].repos
+    end
+    return units
+end
+
+function gun.sync(basic)
+    local units = getunits(basic)
+
+    if not clone(units.repos, basic.repodir) then
         return 1
-    elseif not symlink(config.repos, basic.repodir, basic.farmdir) then
+    elseif not symlink(units.repos, basic.repodir, basic.farmdir) then
         return 1
-    elseif not mkbranch(basic, sysunits, pgnunits) then
+    elseif not mkbranch(basic, units) then
         return 1
-    elseif not switch(basic, config.repos, basic.repodir) then
+    elseif not switch(basic, units.repos, basic.repodir) then
         return 1
     end
     return 0
 end
 
 function gun.rsync(basic)
-    local sysunits = load(basic.sysfile);
-
-    -- hotfix: add task ID to not break branch generation function
-    sysunits.id = basic.id
-
-    local envconf = config[basic.env] or {}
-    local branchname = branch_generate(envconf.branchpatt, sysunits)
-
+    local units = getunits(basic)
+    local branchname = branch_generate(units.branchpatt, units)
 
     if not gun.sync(basic) then
         return 1
-    elseif not pullall(config.repos, basic.repodir, branchname) then
+    elseif not pullall(units.repos, basic.repodir, branchname) then
         return 1
-    elseif not rebase(config.repos, basic.repodir) then
+    elseif not rebase(units.repos, basic.repodir) then
         return 1
     end
     return 0
 end
 
 function gun.del(basic)
-    local envconf = config[basic.env] or {}
-    local repos = config.repos or {}
-    local sysunits = load(basic.sysfile);
-    local pgnunits = load(basic.pgnfile)
+    local units = getunits(basic)
+    local sysbranch = branch_generate(units.branchpatt, units)
+    local branchname = units.branch or sysbranch
 
-    -- hotfix: add task ID to not break branch generation function
-    sysunits.id = basic.id
-
-    -- hotfix: add a tag for my team
-    sysunits.prefix = "DE"
-
-    local sysbranch = branch_generate(envconf.branchpatt, sysunits)
-    local branchname = pgnunits.branch or sysbranch
-
-
-    for _, repo in pairs(repos) do
+    for _, repo in pairs(units.repos) do
         if gitlib.repo_isuncommited(repo.name, basic.repodir) then
             elog(string.format("Cannot delete branch in '%s': has uncommited changes", repo.name));
         elseif not gitlib.branch_switch(repo.name, repo.branch, basic.repodir) then
@@ -353,16 +378,16 @@ local function main()
     local basic = {}
     local lastidx = 1
     local bincmds = {
-        { name = "cat",   func = gun.cat   },
-        { name = "del",   func = gun.del   },
-        { name = "ver",   func = gun.ver   },
-        { name = "help",  func = gun.help  },
-        { name = "sync",  func = gun.sync  },
-        { name = "rsync", func = gun.rsync },
+        { name = "cat",    func = gun.cat    },
         { name = "commit", func = gun.commit },
+        { name = "del",    func = gun.del    },
+        { name = "help",   func = gun.help   },
+        { name = "rsync",  func = gun.rsync  },
+        { name = "sync",   func = gun.sync   },
+        { name = "ver",    func = gun.ver    },
     }
 
-    for optopt, optarg, optind in getopt(arg, "b:e:i:") do
+    for optopt, optarg, optind in getopt(arg, ":b:e:i:") do
         if optopt == "?" then
             return elog("unrecognized option", arg[optind - 1])
         end
