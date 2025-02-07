@@ -90,11 +90,11 @@ function utils.exec(cmd)
 end
 
 ---Generate unit filename.
----@param envname string
+---@param prjname string
 ---@param id string
 ---@return string
-function utils.genname(envname, id)
-    return envname .. "/" .. id
+function utils.genname(prjname, id)
+    return prjname .. "/" .. id
 end
 
 ---Get user input.

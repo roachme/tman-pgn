@@ -2,7 +2,7 @@
 
 PGNAME="time"
 CONF=
-ENV=
+PRJ=
 ID=
 BASE=
 CMD=
@@ -13,7 +13,7 @@ while getopts "b:e:i:" opt; do
             BASE="$OPTARG"
             ;;
         e)
-            ENV="$OPTARG"
+            PRJ="$OPTARG"
             ;;
         i)
             ID="$OPTARG"

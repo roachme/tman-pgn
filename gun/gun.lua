@@ -90,19 +90,19 @@ local function save(fname, units)
 end
 
 --- Setup basic pathes
--- taskdir -- where what env task is located at
+-- taskdir -- where what project task is located at
 -- unitdir -- where unit files are located (system and plugin)
 -- repodir -- where downloaded repos are located
 local function optgen(basic)
-    local envconf = config[basic.env] or {}
+    local prjconf = config[basic.prj] or {}
 
-    basic.taskdir = basic.base .. '/' .. basic.env .. '/' .. basic.id
+    basic.taskdir = basic.base .. '/' .. basic.prj .. '/' .. basic.id
     basic.unitdir = basic.taskdir .. '/' .. '.tman'
     basic.sysfile = basic.unitdir .. '/' .. 'unit'
 
     -- dirs gotta be created
     basic.repodir = basic.base .. '/' .. '.pgn/gun'
-    basic.farmdir = basic.taskdir .. '/' .. (envconf.dirbase or "")
+    basic.farmdir = basic.taskdir .. '/' .. (prjconf.dirbase or "")
     basic.upgndir = basic.unitdir .. '/' .. 'pgn'
     -- files gotta be created
     basic.pgnfile = basic.upgndir .. '/' .. 'gun'
@@ -134,7 +134,7 @@ local function clone(repos, repodir)
     return true
 end
 
--- TODO: symlink only the repos defined for specified env, not all of 'em
+-- TODO: symlink only the repos defined for specified project, not all of 'em
 local function symlink(repos, src, dst)
     for _, repo in pairs(repos) do
         local target = src .. '/' .. repo.name
@@ -205,7 +205,7 @@ local function _branch_rename(repodir, repos, oldbranch, newbranch)
     return true
 end
 
--- FIXME: creates branches in all repos, even if they're not defined for an env
+-- FIXME: creates branches in all repos, even if they're not defined for an project
 local function mkbranch(basic, units)
     local repos = units.repos
     local newbranch = branch_generate(units.branchpatt, units)
@@ -286,20 +286,20 @@ local function getunits(basic)
 
     units.id = basic.id
 
-    -- Set values that all environments share (if set any)
-    units.prefix = config[basic.env].prefix or config._common.prefix
-    units.commitpatt = config[basic.env].commitpatt or config._common.commitpatt
-    units.branchpatt = config[basic.env].branchpatt or config._common.branchpatt
+    -- Set values that all projects share (if set any)
+    units.prefix = config[basic.prj].prefix or config._common.prefix
+    units.commitpatt = config[basic.prj].commitpatt or config._common.commitpatt
+    units.branchpatt = config[basic.prj].branchpatt or config._common.branchpatt
 
-    -- Add repos that all environments share (if set any)
-    if next(config[basic.env].repos) == nil then
+    -- Add repos that all projects share (if set any)
+    if next(config[basic.prj].repos) == nil then
         if next(config._common.repos) == nil then
-            config[basic.env].repos = config._common.repos
+            config[basic.prj].repos = config._common.repos
         else
-            config[basic.env].repos = {}
+            config[basic.prj].repos = {}
         end
     else
-        units.repos = config[basic.env].repos
+        units.repos = config[basic.prj].repos
     end
     return units
 end
@@ -395,7 +395,7 @@ local function main()
         if optopt == "b" then
             basic.base = optarg
         elseif optopt == "e" then
-            basic.env = optarg
+            basic.prj = optarg
         elseif optopt == "i" then
             basic.id = optarg
         end

@@ -2,7 +2,7 @@
 
 PGNAME="tag"
 CONF=
-ENV=
+PRJ=
 ID=
 BASE=
 CMD=
@@ -13,7 +13,7 @@ while getopts "b:e:i:" opt; do
             BASE="$OPTARG"
             ;;
         e)
-            ENV="$OPTARG"
+            PRJ="$OPTARG"
             ;;
         i)
             ID="$OPTARG"
@@ -57,7 +57,7 @@ function tag_rsync()
 
 function tag_cat()
 {
-    echo "branch  : task-branch2"
+    echo "fake-branch  : task-branch2"
     return 0;
 }
 

@@ -2,7 +2,7 @@
 
 CONF=
 
-ENV=
+PRJ=
 ID=
 BASE=
 CMD=
@@ -13,7 +13,7 @@ while getopts "b:e:i:s" opt; do
             BASE="$OPTARG"
             ;;
         e)
-            ENV="$OPTARG"
+            PRJ="$OPTARG"
             ;;
         i)
             ID="$OPTARG"
@@ -30,5 +30,5 @@ CMD="$1"
 CWD="$(pwd)"
 PGNDIR="`dirname $0`"
 cd "$PGNDIR"
-lua gun.lua -e "$ENV" -b "$BASE" -i "$ID" "$CMD"
+lua gun.lua -e "$PRJ" -b "$BASE" -i "$ID" "$CMD"
 cd "$CWD"
