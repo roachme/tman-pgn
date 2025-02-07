@@ -357,7 +357,7 @@ end
 function gun.commit(basic)
 end
 
-function gun.cat(basic)
+function gun.show(basic)
     local pgnunits = load(basic.pgnfile)
     for key, val in pairs(pgnunits) do
         print(string.format("%s : %s", key, val))
@@ -378,11 +378,11 @@ local function main()
     local basic = {}
     local lastidx = 1
     local bincmds = {
-        { name = "cat",    func = gun.cat    },
         { name = "commit", func = gun.commit },
         { name = "del",    func = gun.del    },
         { name = "help",   func = gun.help   },
         { name = "rsync",  func = gun.rsync  },
+        { name = "show",   func = gun.show   },
         { name = "sync",   func = gun.sync   },
         { name = "ver",    func = gun.ver    },
     }
