@@ -55,7 +55,7 @@ function time_rsync()
     return 0;
 }
 
-function time_cat()
+function time_show()
 {
     echo "otime  : original time expectation"
     echo "stime  : time spent on task"
@@ -64,7 +64,7 @@ function time_cat()
 
 function time_help()
 {
-    echo "Usage: repo [sync|rsync|cat|help]"
+    echo "Usage: repo [sync|rsync|show|help]"
 }
 
 
@@ -74,8 +74,8 @@ if [ -z "$CMD" -o "$CMD" = "sync" ]; then
     time_sync
 elif [ "$CMD" = "rsync" ]; then
     time_rsync
-elif [ "$CMD" = "cat" ]; then
-    time_cat
+elif [ "$CMD" = "show" ]; then
+    time_show
 elif [ "$CMD" = "help" ]; then
     time_help
 else
