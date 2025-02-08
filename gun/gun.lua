@@ -5,7 +5,7 @@ package.path = package.path .. ";" .. os.getenv("HOME") .. "/.config/tman/pgns/?
 -- TODO: Fill out default values for config file.
 -- This way plugin will not break.
 
-local config = require("repoconf")
+local config = require("gunconfig")
 local utils  = require("utils")
 local gitlib = require("gitlib")
 local getopt = require("posix.unistd").getopt
