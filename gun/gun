@@ -7,16 +7,20 @@ ID=
 BASE=
 CMD=
 
-while getopts "b:e:i:s" opt; do
+while getopts "b:p:i:s" opt; do
     case "${opt}" in
         b)
             BASE="$OPTARG"
             ;;
-        e)
+        p)
             PRJ="$OPTARG"
             ;;
         i)
             ID="$OPTARG"
+            ;;
+        *)
+            echo "error: invalid option"
+            exit 1
             ;;
     esac
 done
@@ -29,6 +33,7 @@ CMD="$1"
 [ -z "$CMD" ] && CMD="sync"
 CWD="$(pwd)"
 PGNDIR="`dirname $0`"
-cd "$PGNDIR"
-lua gun.lua -e "$PRJ" -b "$BASE" -i "$ID" "$CMD"
-cd "$CWD"
+
+cd "$PGNDIR" || exit 1
+lua gun.lua -p "$PRJ" -b "$BASE" -i "$ID" "$CMD"
+cd "$CWD" || exit 1

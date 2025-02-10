@@ -7,17 +7,19 @@ ID=
 BASE=
 CMD=
 
-while getopts "b:e:i:" opt; do
+while getopts "b:p:i:" opt; do
     case "${opt}" in
         b)
             BASE="$OPTARG"
             ;;
-        e)
+        p)
             PRJ="$OPTARG"
             ;;
         i)
             ID="$OPTARG"
             ;;
+        *)
+            exit 1
     esac
 done
 
