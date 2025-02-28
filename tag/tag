@@ -57,7 +57,7 @@ function tag_rsync()
     return 0;
 }
 
-function tag_cat()
+function tag_show()
 {
     echo "fake-branch  : task-branch2"
     return 0;
@@ -77,7 +77,7 @@ function tag_date()
 
 function tag_help()
 {
-    echo "Usage: repo [sync|rsync|cat|help]"
+    echo "Usage: repo [sync|rsync|show|help]"
 }
 
 _find_config && source "$CONF" || exit 0
@@ -91,7 +91,7 @@ elif [ "$CMD" = "list" ]; then
 elif [ "$CMD" = "date" ]; then
     tag_date
 elif [ "$CMD" = "cat" ]; then
-    tag_cat
+    tag_show
 elif [ "$CMD" = "help" ]; then
     tag_help
 else
