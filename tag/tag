@@ -90,7 +90,7 @@ elif [ "$CMD" = "list" ]; then
     tag_list
 elif [ "$CMD" = "date" ]; then
     tag_date
-elif [ "$CMD" = "cat" ]; then
+elif [ "$CMD" = "show" ]; then
     tag_show
 elif [ "$CMD" = "help" ]; then
     tag_help
