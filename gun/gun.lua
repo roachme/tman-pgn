@@ -387,12 +387,12 @@ local function main()
         { name = "ver",    func = gun.ver    },
     }
 
-    for optopt, optarg, optind in getopt(arg, ":b:p:i:") do
+    for optopt, optarg, optind in getopt(arg, ":B:p:i:") do
         if optopt == "?" then
             return elog("unrecognized option", arg[optind - 1])
         end
         lastidx = optind
-        if optopt == "b" then
+        if optopt == "B" then
             basic.base = optarg
         elseif optopt == "p" then
             basic.prj = optarg

@@ -7,9 +7,9 @@ ID=
 BASE=
 CMD=
 
-while getopts "b:p:i:s" opt; do
+while getopts "B:p:i:s" opt; do
     case "${opt}" in
-        b)
+        B)
             BASE="$OPTARG"
             ;;
         p)
@@ -25,6 +25,20 @@ done
 
 shift $((OPTIND-1))
 CMD="$1"
+
+function usage()
+{
+    cat << EOF
+Usage: tman struct COMMAND
+    Create pre-defined files, directories, etc
+
+    COMMAND list:
+      del       delete pre-defined files
+      help      show this help message and exit
+      make      make pre-defined files
+      show      show list of default files
+EOF
+}
 
 function _find_config()
 {
@@ -91,6 +105,8 @@ elif [ "$CMD" = "rename" ]; then
     struct_rename
 elif [ "$CMD" = "show" ]; then
     struct_show
+elif [ "$CMD" = "help" ]; then
+    usage
 else
     echo "no such command '$CMD'" && exit 1
 fi

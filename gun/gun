@@ -7,9 +7,9 @@ ID=
 BASE=
 CMD=
 
-while getopts "b:p:i:s" opt; do
+while getopts "B:p:i:s" opt; do
     case "${opt}" in
-        b)
+        B)
             BASE="$OPTARG"
             ;;
         p)
@@ -35,5 +35,5 @@ CWD="$(pwd)"
 PGNDIR="`dirname $0`"
 
 cd "$PGNDIR" || exit 1
-lua gun.lua -p "$PRJ" -b "$BASE" -i "$ID" "$CMD"
+lua gun.lua -p "$PRJ" -B "$BASE" -i "$ID" "$CMD"
 cd "$CWD" || exit 1
