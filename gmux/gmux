@@ -178,7 +178,10 @@ class GMUX(GMUXHelper):
     def delete(self):
         pass
 
-    def merge(self, mode="rebase"):
+    # direction: forward and reverse, i.e.
+    # 1. rebase against main branch
+    # 2. or update task branch
+    def merge(self, mode="rebase", direction="forward"):
         if mode == "merge":
             pass
         elif mode == "rebase":
