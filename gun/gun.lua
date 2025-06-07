@@ -16,6 +16,17 @@ local pgnver = "v0.0.1"
 
 local isdegub = false
 
+
+-- Default values for all projects
+config._common = {
+    prefix = "TP",
+    dirbase = "repos",
+    commitpatt = "[ID] PART: MSG",
+    branchpatt = "TYPE/PREFIX-ID_DESC_DATE",
+    repos = {},
+}
+
+
 local function showtable(tab)
     for k, v in pairs(tab) do
         print(k, "-", v)
@@ -286,21 +297,16 @@ local function getunits(basic)
 
     units.id = basic.id
 
+    if config[basic.prj] == nil then
+        config[basic.prj] = {}
+    end
+
     -- Set values that all projects share (if set any)
+    units.repos = config[basic.prj].repos or config._common.repos
     units.prefix = config[basic.prj].prefix or config._common.prefix
+    units.dirbase = config[basic.prj].dirbase or config._common.dirbase
     units.commitpatt = config[basic.prj].commitpatt or config._common.commitpatt
     units.branchpatt = config[basic.prj].branchpatt or config._common.branchpatt
-
-    -- Add repos that all projects share (if set any)
-    if next(config[basic.prj].repos) == nil then
-        if next(config._common.repos) == nil then
-            config[basic.prj].repos = config._common.repos
-        else
-            config[basic.prj].repos = {}
-        end
-    else
-        units.repos = config[basic.prj].repos
-    end
     return units
 end
 
@@ -333,6 +339,22 @@ function gun.rsync(basic)
     return 0
 end
 
+function gun.merge(basic)
+    local units = getunits(basic)
+    local sysbranch = branch_generate(units.branchpatt, units)
+    local branchname = units.branch or sysbranch
+
+    for _, repo in pairs(units.repos) do
+        if gitlib.repo_isuncommited(repo.name, basic.repodir) then
+            elog(string.format("Cannot delete branch in '%s': has uncommited changes", repo.name));
+        elseif not gitlib.branch_switch(repo.name, repo.branch, basic.repodir) then
+            elog("could not switch to default branch", repo.name)
+        elseif not gitlib.branch_rebase(repo.name, branchname, basic.repodir) then
+            elog("could not rebase against default branch", repo.name)
+        end
+    end
+end
+
 function gun.del(basic)
     local units = getunits(basic)
     local sysbranch = branch_generate(units.branchpatt, units)
@@ -355,7 +377,22 @@ function gun.del(basic)
 end
 
 function gun.commit(basic)
+    local commitdesc = ""
+    basic.commitpatt = "tman: MSG" -- TODO: this default somewhere else
+    local sysunits = load(basic.sysfile);
+    local units = getunits(basic)
+
+
+    commitdesc = basic.commitpatt:gsub("ID", basic.id)
+    commitdesc = commitdesc:gsub("MSG", sysunits.desc)
+    -- if not gitlib.repo_clone(repo.link, repo.name, repodir) then
+    -- if gitlib.branch_exist(repo.name, branchname, repodir) then
+    for _, repo in pairs(units.repos) do
+        print(repo.name)
+        gitlib.commit_create(repo.name, commitdesc, basic.repodir)
+    end
 end
+
 
 function gun.show(basic)
     local pgnunits = load(basic.pgnfile)
@@ -366,7 +403,18 @@ function gun.show(basic)
 end
 
 function gun.help(basic)
-    print("show some help")
+    print([[
+Usage: gun [OPITONS]... COMMAND [ARGS]...
+
+Here is list of commands:
+  commit    - commit changes via commit pattern
+  del       - delete branch
+  help      - show this help message and exit
+  merge     - merge to default branch (rebase, merge, cherry-pick)
+  rsync     - remote sync with remote git repo
+  show      - show plugin units
+  sync      - switch to task branch
+  ver       - show version and exit ]])
 end
 
 function gun.ver(basic)
@@ -381,18 +429,19 @@ local function main()
         { name = "commit", func = gun.commit },
         { name = "del",    func = gun.del    },
         { name = "help",   func = gun.help   },
+        { name = "merge",  func = gun.merge  },
         { name = "rsync",  func = gun.rsync  },
         { name = "show",   func = gun.show   },
         { name = "sync",   func = gun.sync   },
         { name = "ver",    func = gun.ver    },
     }
 
-    for optopt, optarg, optind in getopt(arg, ":B:p:i:") do
+    for optopt, optarg, optind in getopt(arg, ":T:p:i:") do
         if optopt == "?" then
             return elog("unrecognized option", arg[optind - 1])
         end
         lastidx = optind
-        if optopt == "B" then
+        if optopt == "T" then
             basic.base = optarg
         elseif optopt == "p" then
             basic.prj = optarg
