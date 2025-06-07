@@ -1,0 +1,290 @@
+#!/bin/python3
+
+import os
+import sys
+import json
+import getopt
+import pygit2
+
+PluginName = "gmux"
+Version = "v0.0.1"
+
+"""
+config
+
+dirdb       # for builtin and plugin unit files
+config      # project config
+
+dirs: .tman/pgn - make sure it's created
+files: .tman/unit, .tman/pgn/gmux
+args - prj, brd, id
+
+"""
+
+
+
+def usage():
+    print(
+        f"Usage: {PluginName} [OPTION]... COMMAND [ARGS]...\n"
+        "\n"
+        "Options:\n"
+        "  -h       show this help message and exit\n"
+        "  -q       do not output to standart error output\n"
+        "  -T       path to task directory\n"
+        "\n"
+        "COMMANDs:\n"
+        "  help     show this help message and exit\n"
+    )
+    return 0
+
+def version():
+    print(f"{PluginName}: {Version}")
+
+
+class GMUXHelper:
+    def clone(self, repos):
+        for repo in repos:
+            try:
+                if not os.path.isdir(repo["path"]):
+                    _repo = pygit2.clone_repository(repo["link"], repo["path"])
+            except pygit2.GitError as e:
+                print(f"error repo: {e}")
+
+    def symlink(self, repos, repodir):
+        print("[-] create symlinks")
+        for repo in repos:
+            src = repo["path"]
+            dst = "/".join([repodir, repo["name"]])
+            if not os.path.islink(dst):
+                os.symlink(src, dst)
+
+    def check_changes(self, repos, repodir):
+        print("[-] check changes")
+        status = True
+
+        for repo in repos:
+            _repo = pygit2.Repository("/".join([ repodir, repo['name'] ]))
+            if len(_repo.status()) > 0:
+                print("uncommitted changes in repo:", repo['name'])
+                status = False
+        return status
+
+
+    def branch_create(self, repos, branchname):
+        print("[-] make branches")
+        for repo in repos:
+            pass
+
+    def branch_switch(self):
+        print("[-] make branches")
+        pass
+
+    def get_config(self):
+        fname = "{}/.config/tman/pgns/gmux.json".format(os.environ["HOME"])
+        if not os.path.isfile(fname):
+            return {}
+        try:
+            with open(fname, 'r') as file:
+                config = json.load(file)
+                return config
+        except:
+            print("error: error in config")
+            return None
+
+    def generate_basic(self, prj, brd, taskid, taskdir):
+        config = GMUXHelper.get_config(self).get(prj) or {}
+        config.update({"taskdir": "/".join([taskdir, prj, taskid]) })
+        config.update({"unitdir": "/".join([config["taskdir"], '.tman']) })
+        config.update({"sysfile": "/".join([config['unitdir'], '.tman']) })
+        config.update({"fpgn": "/".join([config['unitdir'], 'pgn/gun']) }) # TODO: Rename it to gmux
+        return config
+
+    def merge_merge(self):
+        pass
+
+    def merge_rebase(self):
+        pass
+
+    def merge_cherrypick(self):
+        pass
+
+
+class Unit:
+    def __init__(self, fname):
+        self.fname = fname
+
+    def load(self):
+        units = {}
+        if not os.path.isfile(self.fname):
+            print(f"plugin unit file is missing '{self.fname}'")
+            return None
+        with open(self.fname, 'r') as file:
+            for line in file:
+                key, val = line.strip().split(" : ")
+                units.update({key : val})
+        return units
+
+    def set(self, units):
+        pass
+
+    def save(self):
+        pass
+
+
+"""
+dirs: .tman/pgn - make sure it's created
+files: .tman/unit, .tman/pgn/gmux
+args - prj, brd, id
+"""
+class GMUX(GMUXHelper):
+    def __init__(self, args, taskdir):
+        self.task_brd = args["brd"]
+        self.task_id = args["id"]
+        self.task_prj = args["prj"]
+        self.files = {}
+        self.dirs = {}
+
+        self.dirs.update({"pgndir" : "/".join([taskdir, ".pgn/gun"])}) # TODO: rename it to gmux
+        self.dirs.update({"dirdb" : "/".join([taskdir, args["prj"], args["id"], ".tman"])})
+        self.files.update({"sysunit" : "/".join([self.dirs["dirdb"], "unit"])})
+        self.files.update({"pgnunit" : "/".join([self.dirs["dirdb"], "pgn/gun"])})
+
+        print("pgndir", self.dirs["pgndir"])
+        self.basic = GMUXHelper.generate_basic(self, args["prj"], args["brd"], args["id"], taskdir)
+
+        # TODO: add default values in case config is empty for a project
+        self.config = GMUXHelper.get_config(self).get(args["prj"]) or {}
+
+        # Set default values to repos got from config
+        self.config["repos"] = self.config.get("repos") or {}
+        for repo in self.config["repos"]:
+            repo["path"] = repo.get("path") or "/".join([ self.dirs["pgndir"], repo["name"] ])
+
+        self.config["prefix"] = self.config.get("prefix") or "T"
+
+        self.config["repodir"] = self.config.get("repodir") or "repos" # TODO: use '.'
+        self.config["repodir"] = "/".join([ taskdir, args["prj"], args["id"], self.config["repodir"] ])
+        if not os.path.isdir(self.config["repodir"]):
+            os.mkdir(self.config["repodir"])
+
+        self.config["commitpatt"] = self.config.get("commitpatt") or "[ID] PART: MSG"
+        self.config["branchpatt"] = self.config.get("branchpatt") or "TYPE/PREFIX-ID_DESC_DATE"
+
+        self.helper = GMUXHelper()
+
+    def commit(self):
+        pass
+
+    def delete(self):
+        pass
+
+    def merge(self, mode="rebase"):
+        if mode == "merge":
+            pass
+        elif mode == "rebase":
+            pass
+        elif mode == "cherrypick":
+            pass
+        pass
+
+    def show(self):
+        unit = Unit(self.files["pgnunit"])
+        units = unit.load()
+        if units is None:
+            print("errror: show: could not get units")
+            return 1
+
+        for unit in units:
+            print("{:<7} : {}".format(unit, units[unit]))
+
+        return 0
+
+    def sync(self):
+        branchname = "branchname" # TODO: load from system unit file
+
+        # Make sure all needed repos are cloned
+        GMUXHelper.clone(self, self.config["repos"])
+
+        # Create all needed symlinks in task directory
+        GMUXHelper.symlink(self, self.config["repos"], self.config["repodir"])
+
+        # check that all repos has no changes
+        if GMUXHelper.check_changes(self, self.config["repos"], self.config["repodir"]) == False:
+            return 1
+
+        # Create task branch in all repos (maybe not all tho)
+        GMUXHelper.branch_create(self, self.config["repos"], branchname)
+
+        # Switch to task directory
+        # Rebase against default branch (use an option for it)
+        pass
+
+    def rsync(self):
+        pass
+
+
+
+def main():
+    basic = { "taskdir" : "" }
+    tman_args = { "brd": None, "id": None, "prj": None }
+    commands = [ "commit", "delete", "help", "merge", "show", "sync", "rsync", "version" ]
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], ":b:hi:p:T:V")
+    except getopt.GetoptError as err:
+        print(f"{PluginName}: {err}")
+        sys.exit(1)
+
+    for opt, arg in opts:
+        if opt == "-b":
+            tman_args.update({"brd": arg})
+        elif opt == "-h":
+            return usage()
+        elif opt == "-i":
+            tman_args.update({"id": arg})
+        elif opt == "-p":
+            tman_args.update({"prj": arg})
+        elif opt == "-T":
+            basic.update({"taskdir": arg})
+        elif opt == "-V":
+            return version()
+
+    # TODO: check input values like project name, task ID, etc
+    if not os.path.isdir(basic["taskdir"]):
+        print(f"{PluginName}: no such taskdir '{basic['taskdir']}'")
+        sys.exit(1)
+
+
+    gmux = GMUX(tman_args, basic['taskdir'])
+
+    if len(args) == 1:
+        command = args[0]
+    else:
+        command = "sync"
+    #print("non-optional arguments:", args, args[0])
+
+    if command == "commit":
+        gmux.commit()
+    elif command == "delete":
+        gmux.delete()
+    elif command == "help":
+        usage()
+    elif command == "merge":
+        gmux.merge()
+    elif command == "show":
+        gmux.show()
+    elif command == "sync":
+        gmux.sync()
+    elif command == "rsync":
+        gmux.rsync()
+    elif command == "version":
+        version()
+    else:
+        print(f"{PluginName}: '{command}': no such command")
+        sys.exit(0)
+
+
+
+
+if __name__ == "__main__":
+    main()
