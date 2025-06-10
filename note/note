@@ -1,0 +1,124 @@
+#!/bin/bash
+
+# Dumb wrapper so a plugin can call its libraries
+
+PGNAME="note"
+VERSION="0.0.1"
+
+COMMAND=
+TASKDIR=
+PRJNAME=
+TASKNAME=
+
+
+function usage()
+{
+    cat << EOF
+Usage: note [OPTION]... COMMAND
+    Add a note.
+
+    Commands:
+      add     add a new note
+      del     delete a note
+      list    list notes
+      show    show note
+EOF
+}
+
+function version()
+{
+    echo "$PGNAME: v$VERSION"
+}
+
+function note_init()
+{
+    mkdir -p "$BASEDIR"
+    mkdir -p "$UNITPGNDIR"
+    return 0;
+}
+
+function note_add()
+{
+    echo "note_add"
+    echo "prj: $PRJNAME"
+    read -r -p "-> " desc
+    echo "$desc" >> "$NOTEFILE"
+}
+
+function note_del()
+{
+    echo "note_del"
+}
+
+function note_list()
+{
+    cat "$NOTEFILE"
+}
+
+function note_show()
+{
+    echo "note_show"
+}
+
+OPTS=$(getopt -o i:p:T:hV --long prj:,taskid:,taskdir:help,version -n "$PGNAME" -- "$@")
+if [ $? -ne 0 ]; then
+    #echo "error parsing options" >&2
+    exit 1
+fi
+
+## Reset the positional parameters to the parsed options
+eval set -- "$OPTS"
+
+while true; do
+    case "$1" in
+        -i)
+            TASKNAME="$2"
+            shift 2
+            ;;
+        -p)
+            PRJNAME="$2"
+            shift 2
+            ;;
+        -T)
+            TASKDIR="$2"
+            shift 2
+            ;;
+        -h)
+            usage
+            exit 0
+            ;;
+        -V)
+            version
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "$PGNAME: invalid option '$1'" >&2
+            exit 1
+    esac
+done
+
+COMMAND="$1"
+BASEDIR="$TASKDIR/$PRJNAME"
+UNITPGNDIR="$BASEDIR/.tman/pgn"
+NOTEFILE="$UNITPGNDIR/note.txt"
+
+if [ -z "$COMMAND" ]; then
+    echo "$PGNAME: no command passed"
+    exit 1
+fi
+
+note_init
+
+if [ "$COMMAND" = "add" ]; then
+    note_add "$@"
+elif [ "$COMMAND" = "del" ]; then
+    note_del "$@"
+elif [ "$COMMAND" = "show" ]; then
+    note_show "$@"
+elif [ "$COMMAND" = "list" ]; then
+    note_list "$@"
+fi
