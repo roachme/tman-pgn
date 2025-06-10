@@ -1,30 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-CONF=
-
-PRJ=
-ID=
-BASE=
-CMD=
-
-while getopts "B:p:i:s" opt; do
-    case "${opt}" in
-        B)
-            BASE="$OPTARG"
-            ;;
-        p)
-            PRJ="$OPTARG"
-            ;;
-        i)
-            ID="$OPTARG"
-            ;;
-        *)
-            exit 1
-    esac
-done
-
-shift $((OPTIND-1))
-CMD="$1"
+PGNAME="find"
+PATTERN=
+TASKDIR=
+PRJNAME=
+TASKNAME=
 
 function usage()
 {
@@ -33,31 +13,61 @@ Usage: tman find [OPTION]... PATTERN
     Find items in database.
 
     Options:
-      -i    find task ID by PATTERN
-      -b    find board name by PATTERN
-      -p    find project name by PATTERN
+      -i    find task ID by PATTERN (under development)
+      -b    find board name by PATTERN  (under development)
+      -p    find project name by PATTERN (under development)
 EOF
 }
 
-function _find_config()
-{
-    local confdir=("$HOME/.tman/pgns/struct.conf" "$HOME/.config/tman/pgns/struct.conf")
 
-    for conf in "${confdir[@]}"; do
-        if [ -f "$conf" ]; then
-            CONF="$conf"
-            return 0
-        fi
-    done
-    return 1
-}
-
-
-_find_config && source "$CONF" || exit 0
-
-if [ "$CMD" == "help" ]; then
-    usage
-else
-    echo "no such command or empty '$CMD'"
+OPTS=$(getopt -o i:p:T:h --long prj:,taskid:,taskdir:help -n "$PGNAME" -- "$@")
+if [ $? -ne 0 ]; then
+    #echo "error parsing options" >&2
     exit 1
 fi
+
+## Reset the positional parameters to the parsed options
+eval set -- "$OPTS"
+
+while true; do
+    case "$1" in
+        -i)
+            TASKNAME="$2"
+            shift 2
+            ;;
+        -p)
+            PRJNAME="$2"
+            shift 2
+            ;;
+        -T)
+            TASKDIR="$2"
+            shift 2
+            ;;
+        -h)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "$PGNAME: invalid option '$1'" >&2
+            exit 1
+    esac
+done
+
+PATTERN="$1"
+if [ -z "$PATTERN" ]; then
+    echo "${PGNAME}: no pattern passed" >&2
+    exit 1
+fi
+
+for prj in $(ls "$TASKDIR"); do
+    find "$TASKDIR/$prj" -maxdepth 1 -name "*${PATTERN}*" | while read -r res; do
+        res="${res/$TASKDIR\//}"
+        PRJ="$(echo "$res" | cut -f 1 -d '/')"
+        ID="$(echo "$res" | cut -f 2 -d '/')"
+        echo "$PRJ - $ID"
+    done
+done

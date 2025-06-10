@@ -1,39 +1,56 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-CONF=
+# Dumb wrapper so a plugin can call its libraries
 
-PRJ=
-ID=
-BASE=
-CMD=
+PGNAME="gun"
+COMMAND=
+TASKDIR=
+PRJNAME=
+TASKNAME=
 
-while getopts "T:p:i:s" opt; do
-    case "${opt}" in
-        T)
-            BASE="$OPTARG"
+OPTS=$(getopt -o i:p:T:h --long prj:,taskid:,taskdir:help -n "$PGNAME" -- "$@")
+if [ $? -ne 0 ]; then
+    #echo "error parsing options" >&2
+    exit 1
+fi
+
+## Reset the positional parameters to the parsed options
+eval set -- "$OPTS"
+
+while true; do
+    case "$1" in
+        -i)
+            TASKNAME="$2"
+            shift 2
             ;;
-        p)
-            PRJ="$OPTARG"
+        -p)
+            PRJNAME="$2"
+            shift 2
             ;;
-        i)
-            ID="$OPTARG"
+        -T)
+            TASKDIR="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            break
             ;;
         *)
-            echo "error: invalid option"
+            echo "$PGNAME: invalid option '$1'" >&2
             exit 1
-            ;;
     esac
 done
 
-shift $((OPTIND-1))
-CMD="$1"
+COMMAND="$1"
 
+if [ -z "$COMMAND" ]; then
+    echo "$PGNAME: no command passed"
+    exit 1
+fi
 
-# Dumb wrapper so a plugin can call its libraries
-[ -z "$CMD" ] && CMD="sync"
 CWD="$(pwd)"
 PGNDIR="`dirname $0`"
 
 cd "$PGNDIR" || exit 1
-lua gun.lua -p "$PRJ" -T "$BASE" -i "$ID" "$CMD"
+lua gun.lua -p "$PRJNAME" -T "$TASKDIR" -i "$TASKNAME" "$COMMAND"
 cd "$CWD" || exit 1

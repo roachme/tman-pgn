@@ -1,45 +1,53 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-PGNAME="time"
-CONF=
-PRJ=
-ID=
-BASE=
-CMD=
+# Dumb wrapper so a plugin can call its libraries
 
-while getopts "T:p:i:" opt; do
-    case "${opt}" in
-        T)
-            BASE="$OPTARG"
+PGNAME="gun"
+COMMAND=
+TASKDIR=
+PRJNAME=
+TASKNAME=
+
+OPTS=$(getopt -o i:p:T:h --long prj:,taskid:,taskdir:help -n "$PGNAME" -- "$@")
+if [ $? -ne 0 ]; then
+    #echo "error parsing options" >&2
+    exit 1
+fi
+
+## Reset the positional parameters to the parsed options
+eval set -- "$OPTS"
+
+while true; do
+    case "$1" in
+        -i)
+            TASKNAME="$2"
+            shift 2
             ;;
-        p)
-            PRJ="$OPTARG"
+        -p)
+            PRJNAME="$2"
+            shift 2
             ;;
-        i)
-            ID="$OPTARG"
+        -T)
+            TASKDIR="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            break
             ;;
         *)
-            echo "invalid option"
+            echo "$PGNAME: invalid option '$1'" >&2
             exit 1
-            ;;
     esac
 done
 
-shift $((OPTIND-1))
-CMD="$1"
+COMMAND="$1"
 
-function _find_config()
-{
-    local confdir=("$HOME/.tman/pgns/${PGNAME}.conf" "$HOME/.config/tman/pgns/${PGNAME}.conf")
+if [ -z "$COMMAND" ]; then
+    echo "$PGNAME: no command passed"
+    exit 1
+fi
 
-    for conf in "${confdir[@]}"; do
-        if [ -f "$conf" ]; then
-            CONF="$conf"
-            return 0
-        fi
-    done
-    return 1
-}
 
 
 function time_init()
@@ -72,16 +80,14 @@ function time_help()
 }
 
 
-_find_config && source "$CONF" || exit 0
-
-if [ -z "$CMD" -o "$CMD" = "sync" ]; then
+if [ -z "$COMMAND" -o "$COMMAND" = "sync" ]; then
     time_sync
-elif [ "$CMD" = "rsync" ]; then
+elif [ "$COMMAND" = "rsync" ]; then
     time_rsync
-elif [ "$CMD" = "show" ]; then
+elif [ "$COMMAND" = "show" ]; then
     time_show
-elif [ "$CMD" = "help" ]; then
+elif [ "$COMMAND" = "help" ]; then
     time_help
 else
-    echo "$PGNAME: no such command '$CMD'" && exit 1
+    echo "$PGNAME: no such command '$COMMAND'" && exit 1
 fi

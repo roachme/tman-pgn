@@ -11,6 +11,7 @@
 ### Changed
 
 - `tag`: Rename command cat to show
+- `pgn`: Replace getopts with getopt
 
 ### Fixed
 
