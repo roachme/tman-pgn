@@ -38,10 +38,10 @@ function _find_config()
 function struct_make()
 {
     for dir in "${STRUCT_DIRS[@]}"; do
-        mkdir -p "$BASE/$PRJ/$ID/$dir"
+        mkdir -p "$TASKDIR/$PRJNAME/$TASKNAME/$dir"
     done
     for file in "${STRUCT_FILES[@]}"; do
-        touch "$BASE/$PRJ/$ID/$file"
+        touch "$TASKDIR/$PRJNAME/$TASKNAME/$file"
     done
     return 0;
 }
@@ -49,10 +49,10 @@ function struct_make()
 function struct_delete()
 {
     for dir in "${STRUCT_DIRS[@]}"; do
-        rm -rf "$BASE/$PRJ/$ID/$dir"
+        rm -rf "$TASKDIR/$PRJNAME/$TASKNAME/$dir"
     done
     for file in "${STRUCT_FILES[@]}"; do
-        rm -rf "$BASE/$PRJ/$ID/$file"
+        rm -rf "$TASKDIR/$PRJNAME/$TASKNAME/$file"
     done
     return 0;
 }

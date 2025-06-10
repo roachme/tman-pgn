@@ -17,6 +17,7 @@
 
 - `gun`: Add checks for projects with no config
 - `gun`: Add checks for input arguments
+- `struct`: Fix invalid variable names
 
 ### Deleted
 
