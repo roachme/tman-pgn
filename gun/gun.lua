@@ -11,7 +11,7 @@ local gitlib = require("gitlib")
 local getopt = require("posix.unistd").getopt
 
 local gun = {}
-local pgname = "gun"
+local pgname = "tman-gun"
 local pgnver = "v0.0.1"
 
 local isdegub = false
@@ -51,6 +51,7 @@ function table.join(tab1, tab2)
 end
 
 
+-- TODO: make return value an integer
 local function elog(...)
     io.stderr:write(string.format("%s: ", pgname))
     for _, val in pairs({...}) do
@@ -449,6 +450,15 @@ local function main()
             basic.id = optarg
         end
     end
+
+    if basic.prj == nil or basic.prj == '' then
+        elog("no current project")
+        return 1
+    elseif basic.id == nil or basic.id == '' then
+        elog("no current task ID")
+        return 1
+    end
+
 
     cmd = table.remove(arg, lastidx) or "sync"
     basic = optgen(basic)

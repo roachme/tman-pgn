@@ -2,7 +2,7 @@
 
 # Dumb wrapper so a plugin can call its libraries
 
-PGNAME="gun"
+PGNAME="tman-gun"
 COMMAND=
 TASKDIR=
 PRJNAME=
@@ -53,4 +53,6 @@ PGNDIR="`dirname $0`"
 
 cd "$PGNDIR" || exit 1
 lua gun.lua -p "$PRJNAME" -T "$TASKDIR" -i "$TASKNAME" "$COMMAND"
+res="$?"
 cd "$CWD" || exit 1
+exit "$res"
