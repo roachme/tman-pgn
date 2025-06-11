@@ -95,7 +95,7 @@ local function save(fname, units)
     end
     for _, v in pairs(pgnkeys) do
         f:write(v, " : ", units[v], '\n')
-        dlog("save: ", v, " : ", units[v], '\n')
+        dlog("save: ", v, " : ", units[v])
     end
     -- FIXME: maybe will cause problems on other Lua versions.
     return f:close() == true
@@ -251,6 +251,7 @@ local function switch(basic, repos, repodir)
 
     for _, repo in pairs(repos) do
         if not gitlib.branch_switch(repo.name, branchname, repodir) then
+            elog("fucking error when switch branch", repo.name)
             return elog(string.format("%s: could not switch", repo.name))
         end
     end
@@ -437,12 +438,16 @@ local function main()
         { name = "ver",    func = gun.ver    },
     }
 
-    for optopt, optarg, optind in getopt(arg, ":T:p:i:") do
+    -- FIXME: options `-d' and `-T' belog to plugin, not a command. Make them separate.
+    for optopt, optarg, optind in getopt(arg, ":d:T:p:i:") do
         if optopt == "?" then
             return elog("unrecognized option", arg[optind - 1])
         end
         lastidx = optind
-        if optopt == "T" then
+        if optopt == "d" then
+            -- TODO: add a function to convert string to boolean
+            isdegub = optarg == "true" and true or false
+        elseif optopt == "T" then
             basic.base = optarg
         elseif optopt == "p" then
             basic.prj = optarg
