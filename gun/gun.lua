@@ -182,6 +182,7 @@ local function branch_generate(branchpatt, sysunits)
 
     for _, item in pairs(sepcomponents) do
         local uitem = sysunits[string.lower(item)]
+        print("uitem", uitem)
 
         -- roachme: HOTFIX: desc: replace whitespace with undrescore
         if item == "DESC" then

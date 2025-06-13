@@ -1,10 +1,47 @@
 #!/bin/python3
 
 import os
+import re
 import sys
 import json
 import getopt
 import pygit2
+import json
+
+#    def __init__(self, args, taskdir):
+#        self.task_brd = args["brd"]
+#        self.task_id = args["id"]
+#        self.task_prj = args["prj"]
+#        self.files = {}
+#        self.dirs = {}
+#
+#        self.dirs.update({"pgndir" : "/".join([taskdir, ".pgn/gun"])}) # TODO: rename it to gmux
+#        self.dirs.update({"dirdb" : "/".join([taskdir, args["prj"], args["id"], ".tman"])})
+#        self.files.update({"sysunit" : "/".join([self.dirs["dirdb"], "unit"])})
+#        self.files.update({"pgnunit" : "/".join([self.dirs["dirdb"], "pgn/gun"])})
+#
+#        print("pgndir", self.dirs["pgndir"])
+#        self.basic = GMUXHelper.generate_basic(self, args["prj"], args["brd"], args["id"], taskdir)
+#
+#        # TODO: add default values in case config is empty for a project
+#        self.config = GMUXHelper.get_config(self).get(args["prj"]) or {}
+#
+#        # Set default values to repos got from config
+#        self.config["repos"] = self.config.get("repos") or {}
+#        for repo in self.config["repos"]:
+#            repo["path"] = repo.get("path") or "/".join([ self.dirs["pgndir"], repo["name"] ])
+#
+#        self.config["prefix"] = self.config.get("prefix") or "T"
+#
+#        self.config["repodir"] = self.config.get("repodir") or "repos" # TODO: use '.'
+#        self.config["repodir"] = "/".join([ taskdir, args["prj"], args["id"], self.config["repodir"] ])
+#        if not os.path.isdir(self.config["repodir"]):
+#            os.mkdir(self.config["repodir"])
+#
+#        self.config["commitpatt"] = self.config.get("commitpatt") or "[ID] PART: MSG"
+#        self.config["branchpatt"] = self.config.get("branchpatt") or "TYPE/PREFIX-ID_DESC_DATE"
+#
+#        self.helper = GMUXHelper()
 
 PluginName = "gmux"
 Version = "v0.0.1"
@@ -22,19 +59,96 @@ args - prj, brd, id
 """
 
 
+"""
+classes:
+    config: (read from file, if not then set defaults)
+    unit: (read from and write to)
+    basic: (for dirs and files)
+"""
+
+"""
+taskdir - where task are stored
+pgndir  - where plugin date is located
+repodir - where is repo symlink located in task
+"""
+
+
+"""
+TODO:
+    5. Add support for worktree.
+    6. Add support for submodules.
+"""
+
+class Config:
+    def __init__(self, taskdir):
+        self.taskdir = taskdir
+        self.config = {}
+        self.prjconf = {}
+
+    def find_file(self):
+        files = {
+            "{}/.tman/pgns/gmux.json".format(os.environ["HOME"]),
+            "{}/.config/tman/pgns/gmux.json".format(os.environ["HOME"]),
+        }
+        for file in files:
+            if os.path.exists(file):
+                return file
+        return None
+
+# repo {'name': 'OpenWRT', 'branch': 'openwrt-23.05', 'link': 'git@gitlab.wimark.com:embedded/OpenWRT.git', 'path': ''}
+#repo {'name': 'demo', 'branch': 'main', 'link': 'https://github.com/roachme/demo.git', 'path': ''}
+
+    def set_defaults(self, prj, taskid):
+        # basic.repodir = basic.base .. '/' .. '.pgn/gun'
+        # TODO: rename gun to gmux
+        self.config.update({"pgndir" : "/".join([self.taskdir, ".pgn/gun"])})
+        for repo in self.config[prj]["repos"]:
+            repo["path"] = "/".join([self.config["pgndir"], repo["name"]])
+
+        self.config[prj]["pgndir"] = "/".join([self.taskdir, ".pgn/gun"])
+        self.config[prj]["prefix"] = "PR"
+        return self.config[prj]
+
+
+    def get(self, prj, taskid):
+        fname = self.find_file()
+        if fname is None:
+            return self.set_defaults(prj, taskid)
+
+        with open(fname, 'r') as file:
+            self.config = json.load(file)
+            return self.set_defaults(prj, taskid)
+        return self.prjconf
+
+    def set(self):
+        pass
+
+
+# Separet branch pattern into items
+def pattsplit(inputstr, sep):
+    return re.split("[-_/]", inputstr)
+
+def branch_generate(branchpatt, sysunits):
+    pass
+
+def die(msg):
+    print(f"{PluginName}: ", end='')
+    print(msg)
+    sys.exit(1)
 
 def usage():
     print(
-        f"Usage: {PluginName} [OPTION]... COMMAND [ARGS]...\n"
+        f"Usage: {PluginName} [OPTION]... COMMAND [OPTION]... [ARG]...\n"
         "\n"
         "Options:\n"
         "  -h       show this help message and exit\n"
         "  -q       do not output to standart error output\n"
         "  -T       path to task directory\n"
+        "  -V       show verison and exit\n"
         "\n"
         "COMMANDs:\n"
-        "  help     show this help message and exit\n"
-    )
+        "  show     show plugin units\n"
+        "  help     show this help message and exit")
     return 0
 
 def version():
@@ -46,15 +160,21 @@ class GMUXHelper:
         for repo in repos:
             try:
                 if not os.path.isdir(repo["path"]):
+                    print("link", repo["link"])
+                    print("path", repo["path"])
                     _repo = pygit2.clone_repository(repo["link"], repo["path"])
             except pygit2.GitError as e:
                 print(f"error repo: {e}")
 
-    def symlink(self, repos, repodir):
+    def symlink(self, repos, task_repodir):
+        if not os.path.isdir(task_repodir):
+            os.mkdir(task_repodir)
         print("[-] create symlinks")
         for repo in repos:
             src = repo["path"]
-            dst = "/".join([repodir, repo["name"]])
+            dst = "/".join([task_repodir, repo["name"]])
+            print("src", src)
+            print("dst", dst)
             if not os.path.islink(dst):
                 os.symlink(src, dst)
 
@@ -131,163 +251,202 @@ class Unit:
         pass
 
 
+def _config_default():
+    pass
+
+def _load_config(filename):
+    with open(filename, 'r') as file:
+        pass
+
+def load_config():
+    files = {
+        "/home/roach/.tman/pgn/gmux.json",
+        "/home/roach/.config/tman/pgn/gmux.json",
+    }
+    for file in files:
+        if os.path.exists(file):
+            return _load_config(file)
+    return _config_default()
+
 """
 dirs: .tman/pgn - make sure it's created
 files: .tman/unit, .tman/pgn/gmux
 args - prj, brd, id
 """
 class GMUX(GMUXHelper):
-    def __init__(self, args, taskdir):
-        self.task_brd = args["brd"]
-        self.task_id = args["id"]
-        self.task_prj = args["prj"]
-        self.files = {}
-        self.dirs = {}
-
-        self.dirs.update({"pgndir" : "/".join([taskdir, ".pgn/gun"])}) # TODO: rename it to gmux
-        self.dirs.update({"dirdb" : "/".join([taskdir, args["prj"], args["id"], ".tman"])})
-        self.files.update({"sysunit" : "/".join([self.dirs["dirdb"], "unit"])})
-        self.files.update({"pgnunit" : "/".join([self.dirs["dirdb"], "pgn/gun"])})
-
-        print("pgndir", self.dirs["pgndir"])
-        self.basic = GMUXHelper.generate_basic(self, args["prj"], args["brd"], args["id"], taskdir)
-
-        # TODO: add default values in case config is empty for a project
-        self.config = GMUXHelper.get_config(self).get(args["prj"]) or {}
-
-        # Set default values to repos got from config
-        self.config["repos"] = self.config.get("repos") or {}
-        for repo in self.config["repos"]:
-            repo["path"] = repo.get("path") or "/".join([ self.dirs["pgndir"], repo["name"] ])
-
-        self.config["prefix"] = self.config.get("prefix") or "T"
-
-        self.config["repodir"] = self.config.get("repodir") or "repos" # TODO: use '.'
-        self.config["repodir"] = "/".join([ taskdir, args["prj"], args["id"], self.config["repodir"] ])
-        if not os.path.isdir(self.config["repodir"]):
-            os.mkdir(self.config["repodir"])
-
-        self.config["commitpatt"] = self.config.get("commitpatt") or "[ID] PART: MSG"
-        self.config["branchpatt"] = self.config.get("branchpatt") or "TYPE/PREFIX-ID_DESC_DATE"
-
-        self.helper = GMUXHelper()
-
-    def commit(self):
+    def __init__(self, sysopts):
+        self.taskdir = sysopts.get("taskdir")
         pass
 
-    def delete(self):
+    def commit(self, basic, arguments):
         pass
 
-    # direction: forward and reverse, i.e.
-    # 1. rebase against main branch
-    # 2. or update task branch
-    def merge(self, mode="rebase", direction="forward"):
-        if mode == "merge":
-            pass
-        elif mode == "rebase":
-            pass
-        elif mode == "cherrypick":
-            pass
+    def delete(self, basic, arguments):
         pass
 
-    def show(self):
-        unit = Unit(self.files["pgnunit"])
-        units = unit.load()
-        if units is None:
-            print("errror: show: could not get units")
-            return 1
+    def help(self, basic, arguments):
+        return usage()
 
-        for unit in units:
-            print("{:<7} : {}".format(unit, units[unit]))
+    def init(self, basic, arguments):
+        pass
 
-        return 0
+    # TODO: direction: forward and reverse, i.e.
+    #     1. rebase against main branch
+    #     2. or update task branch
+    # TODO: add option like: rebase, merge and cherrypick
+    def merge(self, basic, arguments):
+        pass
 
-    def sync(self):
-        branchname = "branchname" # TODO: load from system unit file
+    def show(self, basic, arguments):
+        args = {}
+
+        try:
+            opts, _args = getopt.getopt(arguments, ":b:i:p:")
+            for opt, arg in opts:
+                if opt == "-b":
+                    args.update({"brd": arg})
+                elif opt == "-i":
+                    args.update({"id": arg})
+                elif opt == "-p":
+                    args.update({"prj": arg})
+                else:
+                    die(f"option {opt} requires an argument")
+            # Check input arguments
+            # TODO: Add check for board
+            if args.get("id") is None:
+                die("no current task ID")
+            elif args.get("prj") is None:
+                die("no current project")
+        except getopt.GetoptError as err:
+            die(f"{err}")
+
+        # TODO: replace gun with gmux in the filename below
+        unitfile = "/".join([self.taskdir, args["prj"], args["id"], ".tman/pgn/gun"])
+        units = Unit(unitfile).load()
+        # TODO: add a padding to output
+        if units is not None:
+            for key in units:
+                print(f"{key} : {units[key]}")
+            return 0
+        die("could not get gmux unit file content")
+
+    def sync(self, basic, arguments):
+        args = {}
+
+        try:
+            opts, _args = getopt.getopt(arguments, ":b:i:p:")
+            for opt, arg in opts:
+                if opt == "-b":
+                    args.update({"brd": arg})
+                elif opt == "-i":
+                    args.update({"id": arg})
+                elif opt == "-p":
+                    args.update({"prj": arg})
+                else:
+                    die(f"option {opt} requires an argument")
+            # Check input arguments
+            # TODO: Add check for board
+            if args.get("id") is None:
+                die("no current task ID")
+            elif args.get("prj") is None:
+                die("no current project")
+        except getopt.GetoptError as err:
+            die(f"{err}")
+
+        unitfile = "/".join([self.taskdir, args["prj"], args["id"], ".tman/unit"])
+        sysunits = Unit(unitfile).load()
+        unitfile = "/".join([self.taskdir, args["prj"], args["id"], ".tman/pgn/gun"])
+        units = Unit(unitfile).load()
+
+        config = Config(basic["taskdir"])
+        config = config.get(args["prj"], args["id"])
 
         # Make sure all needed repos are cloned
-        GMUXHelper.clone(self, self.config["repos"])
+        GMUXHelper.clone(self, config["repos"])
 
         # Create all needed symlinks in task directory
-        GMUXHelper.symlink(self, self.config["repos"], self.config["repodir"])
+        task_repodir = "/".join([self.taskdir, args["prj"], args["id"], "repos"])
+        GMUXHelper.symlink(self, config["repos"], task_repodir)
 
         # check that all repos has no changes
-        if GMUXHelper.check_changes(self, self.config["repos"], self.config["repodir"]) == False:
+        if GMUXHelper.check_changes(self, config["repos"], task_repodir) == False:
+            print("ERROR: has uncommitted changes")
             return 1
+        return 0
 
         # Create task branch in all repos (maybe not all tho)
-        GMUXHelper.branch_create(self, self.config["repos"], branchname)
+        GMUXHelper.branch_create(self, config["repos"], branchname)
 
         # Switch to task directory
         # Rebase against default branch (use an option for it)
         pass
 
-    def rsync(self):
+    def rsync(self, basic, arguments):
         pass
 
 
 
 def main():
-    basic = { "taskdir" : "" }
-    tman_args = { "brd": None, "id": None, "prj": None }
-    commands = [ "commit", "delete", "help", "merge", "show", "sync", "rsync", "version" ]
+    basic = {}
 
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], ":b:hi:p:T:V")
-    except getopt.GetoptError as err:
-        print(f"{PluginName}: {err}")
-        sys.exit(1)
-
-    for opt, arg in opts:
-        if opt == "-b":
-            tman_args.update({"brd": arg})
-        elif opt == "-h":
+    # Parse plugin options
+    i = 1
+    option = sys.argv[i]
+    while i < len(sys.argv) and sys.argv[i][0:1] == '-':
+        option = sys.argv[i]
+        if option == "-h":
             return usage()
-        elif opt == "-i":
-            tman_args.update({"id": arg})
-        elif opt == "-p":
-            tman_args.update({"prj": arg})
-        elif opt == "-T":
-            basic.update({"taskdir": arg})
-        elif opt == "-V":
+        elif option == "-T":
+            if i + 1 == len(sys.argv):
+                die(f"option `{option}' requires an arguments")
+            basic.update({"taskdir": sys.argv[i + 1]})
+            i = i + 1
+        elif option == "-V":
             return version()
+        else:
+            die(f"no such option: `{option}'")
+        i = i + 1
 
-    # TODO: check input values like project name, task ID, etc
-    if not os.path.isdir(basic["taskdir"]):
-        print(f"{PluginName}: no such taskdir '{basic['taskdir']}'")
-        sys.exit(1)
+    command = sys.argv[i] if i < len(sys.argv) else die("no command passed")
+    arguments = sys.argv[i + 1:]
 
+    gmux = GMUX(basic)
+    commands = [
+        { "name" : "commit", "func" : gmux.commit },
+        { "name" : "init", "func" : gmux.init },
+        { "name" : "show", "func" : gmux.show },
+        { "name" : "help", "func" : gmux.help },
+        { "name" : "sync", "func" : gmux.sync },
+        { "name" : "rsync", "func" : gmux.rsync },
+    ]
 
-    gmux = GMUX(tman_args, basic['taskdir'])
+    for cmd in commands:
+        if command == cmd["name"]:
+            return cmd["func"](basic, arguments)
 
-    if len(args) == 1:
-        command = args[0]
-    else:
-        command = "sync"
-    #print("non-optional arguments:", args, args[0])
-
-    if command == "commit":
-        gmux.commit()
-    elif command == "delete":
-        gmux.delete()
-    elif command == "help":
-        usage()
-    elif command == "merge":
-        gmux.merge()
-    elif command == "show":
-        gmux.show()
-    elif command == "sync":
-        gmux.sync()
-    elif command == "rsync":
-        gmux.rsync()
-    elif command == "version":
-        version()
-    else:
-        print(f"{PluginName}: '{command}': no such command")
-        sys.exit(0)
+    die(f"'{command}': no such command")
 
 
+
+def branch_generate(branchpatt, sysunits):
+    separators = "/_-"
+    sepcomponents = pattsplit(branchpatt, separators)
+
+    for item in sepcomponents:
+        #uitem = sysunits[string.lower(item)]
+        print(item, item.lower())
+
+    print()
+    for item in sysunits:
+        print("sysunit", item)
+
+
+sysunits = Unit("/home/roach/trash/tman/test/test1/.tman/unit").load()
+branchpatt = "TYPE/PREFIX-ID_DESC_DATE"
+res = branch_generate(branchpatt, sysunits)
+print(res)
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    pass
