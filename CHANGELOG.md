@@ -8,6 +8,7 @@
 - `gun`: Add commit command to plugin gun
 - `gun`: Add merge command to gun plugin
 - `gun`: Add debug option
+- `gun`: Add default config file
 
 ### Changed
 
